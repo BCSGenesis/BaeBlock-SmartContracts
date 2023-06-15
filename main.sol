@@ -1,260 +1,280 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
-
-
+pragma solidity ^0.8.18;
 
 contract Payment {
-    struct Store {
-        address payable storeWallet;
+    //고객 구조체
+    struct Customer {
+        address  customerWallet;
+        string customerAddress;
+        Busket busket;
+        Order goingOrder;
+    }
+    //가게 점주 입장 구조체
+    struct Store_own {
+        address  storeWallet;
         string storeName;
         string storeAddress;
-        mapping (string=>Menu[]) menuList;
-        mapping(address=>Order) orderList;
+        Menu[] menuList;
+        Order[] orderList;
     }
-
-
-    mapping(address => Store) stores;
-
-
-    struct Customer {
-        address payable customerWallet;
-        string customerAddress;
-        //string id;
-        //string password;
-        //uint orderID;
-        Order busket;
-        mapping(address=>Order) orderList;
+    //가게 고객 입장 구조체
+    struct Store_cus {
+        address  storeWallet;
+        string storeName;
+        string storeAddress;
+        Menu[] menuList;
     }
-
-    mapping(address => Customer) customers;
-
+    //배달원 구조체
     struct Rider {
-        address payable riderWallet;
+        address  riderWallet;
         Order[] orders;
     }
-
-    mapping(address => Rider) riders;
-
+    //메뉴 구조체
     struct Menu {
         string name;
         uint price;
         uint count;
     }
-
-
+    //장바구니 구조체체
+    struct Busket {
+        address customerAddr;
+        address storeAddr;
+        string customerAddress;
+        string storeAddress;
+        Menu[] menuName;
+        uint foodPrice;
+        uint deliveryFee;
+    }
+    //주문 구조체
     struct Order {
-        // 주문 번호 (고객 지갑으로 해도 될지?? 근데 고객 지갑으로 하면 주문 번호가 겹치는데 그래도 되는지..?)
         uint orderID;
         address customerAddr;
         address storeAddr;
-        // 고객 주소 (라이더가 조회)
+        address riderAddr;
         string customerAddress;
-        // 주문한 음식과 개수를 매칭해야 함.
+        string storeAddress;
         Menu[] menuName;
-        // 음식 가격 (매장이 조회)
         uint foodPrice;
-        // 기본 배달료 (라이더가 조회)
         uint deliveryFee;
-        // 추가 배달팁 (라이더가 조회)
         uint deliveryTip;
-        // 픽업 완료
-
         storeState storeStatus;
         riderState riderStatus;
     }
+    //주문에 대한 가게 반응 상태
     enum storeState {decline, accept,cookFinish, isPicked,notyetChoice,checkMoney}
+    //주문에 대한 배달원 반응 상태
     enum riderState {selected,notSelected, inDelivery, isPicked, deliveryComplete}
 
-    mapping(address => Order) busketList;
-    
+    //고객들 저장된 맵핑
+    mapping(address => Customer) customers;
+    //가게들 저장된 배열(고객이 쇼핑하는 입장)
+    Store_cus[] stores_customer;
+    //가게들 저장된 배열(가게주인 관리하는 입장)
+    mapping(address=>Store_own) stores_owner;
+    //배달원들 저장된 맵핑
+    mapping(address => Rider) riders;
+    //배달대기목록
+    Order[] deliveryWaitingList;
 
+    //고객 등록 기능
+    function customerRegist(string memory _customerAddress) public view {
+        Customer memory newCustomer = customers[msg.sender];
+        newCustomer.customerWallet=msg.sender;
+        newCustomer.customerAddress=_customerAddress;
+        newCustomer.busket=Busket(msg.sender,address(0),"","",new Menu[](0),0,0);
+        newCustomer.goingOrder=Order(0,address(0),address(0),address(0),"","", new Menu[](0),0,0,0,storeState.notyetChoice,riderState.notSelected);
+    }
 
+    //라이더 등록 기능
+    function riderRegist() public view{       
+        Rider memory newRider=riders[msg.sender];
+        newRider.riderWallet=msg.sender;
+        newRider.orders= new Order[](0);
+    }
+
+    //가게 등록 기능
     function storeRegist(string memory _storeName,string memory _storeAddress) public {
-        Store storage newStore=stores[msg.sender];
-        newStore.storeWallet = payable(msg.sender);
-        newStore.storeName = _storeName;
-        newStore.storeAddress = _storeAddress;
+        //stores 고객 배열에 가게 추가하기
+        Store_cus memory newStore_cus = stores_customer.push();
+        newStore_cus.storeWallet=msg.sender;
+        newStore_cus.storeName=_storeName;
+        newStore_cus.storeAddress=_storeAddress;
+        newStore_cus.menuList=new Menu[](0);
+
+        //stores 점주 맵핑에 가게 추가하기
+        Store_own memory newStore_own = stores_owner[msg.sender];
+        newStore_own.storeWallet=msg.sender;
+        newStore_own.storeName=_storeName;
+        newStore_own.storeAddress=_storeAddress;
+        newStore_own.menuList=new Menu[](0);
+        newStore_own.orderList=new Order[](0);
     }
 
-    function storeMenuRegist(address  _address,string memory _menuName,uint _price)public{
-        stores[_address].menuList[_menuName].push(Menu(_menuName,_price,0));
+    //가게 메뉴 등록 기능
+    function storeMenuRegist(string memory _menuName,uint _price)public{
+        //stores 고객 배열의 Mene[]에 메뉴 추가하기
+        for(uint i=0;i<stores_customer.length;i++){
+            if(stores_customer[i].storeWallet==msg.sender){
+                stores_customer[i].menuList.push(Menu(_menuName,_price,0));
+            }
+        }
+        //stores 점주 배열의 Mene[]에 메뉴 추가하기
+        stores_owner[msg.sender].menuList.push(Menu(_menuName,_price,0));
     }
 
-
-    function customerRegist() public {
-        customers[msg.sender].customerWallet = payable(msg.sender);
+    //장바구니에 메뉴 담기
+    function addMenuToBusket(address _storeAddr,string memory _foodName)public {
+        
+        customers[msg.sender].busket.customerAddr=msg.sender;
+        customers[msg.sender].busket.storeAddr=_storeAddr;
+        customers[msg.sender].busket.customerAddress=customers[msg.sender].customerAddress;
+        for(uint i=0;i<stores_customer.length;i++){
+            if(stores_customer[i].storeWallet == _storeAddr){
+                for(uint j=0;j<stores_customer[i].menuList.length;j++){
+                    if(keccak256(abi.encodePacked(stores_customer[i].menuList[j].name))==keccak256(abi.encodePacked(_foodName))){
+                        customers[msg.sender].busket.menuName.push(stores_customer[i].menuList[j]);
+                    }
+                }
+            }
+        }
+        customers[msg.sender].busket.foodPrice=menuTotalPriceForBusket();
+        customers[msg.sender].busket.deliveryFee=0;
     }
 
-
-    function riderRegist() public {
-        riders[msg.sender].riderWallet = payable(msg.sender);
-    }
-
-    function ordering() public view{
-        //고객정보에 주문 추가가
-        Order memory newOrder = customers[msg.sender].orderList[customers[msg.sender].busket.storeAddr];
-        newOrder.orderID=0;
-        newOrder.customerAddr=msg.sender;
-        newOrder.storeAddr=customers[msg.sender].busket.storeAddr;
-        newOrder.customerAddress=customers[msg.sender].busket.customerAddress;
-        newOrder.menuName=customers[msg.sender].busket.menuName;
-        newOrder.foodPrice=menuTotalPrice();
-        newOrder.deliveryFee=0;
-        newOrder.deliveryTip=0;
-        newOrder.storeStatus=storeState.notyetChoice;
-        newOrder.riderStatus=riderState.notSelected; 
-        //가게에 주문 추가
-        Order memory newStoreOrder= stores[customers[msg.sender].busket.storeAddr].orderList[msg.sender];
-        newStoreOrder.orderID=0;
-        newStoreOrder.customerAddr=msg.sender;
-        newStoreOrder.storeAddr=customers[msg.sender].busket.storeAddr;
-        newStoreOrder.customerAddress=customers[msg.sender].busket.customerAddress;
-        newStoreOrder.menuName=customers[msg.sender].busket.menuName;
-        newStoreOrder.foodPrice=menuTotalPrice();
-        newStoreOrder.deliveryFee=0;
-        newStoreOrder.deliveryTip=0;
-        newStoreOrder.storeStatus=storeState.notyetChoice;
-        newStoreOrder.riderStatus=riderState.notSelected; 
-    }
-
-    function menuTotalPrice()public view returns(uint){
+    //메뉴 총 가격 계산하기
+    function menuTotalPriceForBusket()public view returns(uint){
         uint totalPrice;
-        uint menuLength = busketList[msg.sender].menuName.length;
+        uint menuLength = customers[msg.sender].busket.menuName.length;
         for (uint i = 0; i < menuLength; i++) {
-            totalPrice += busketList[msg.sender].menuName[i].price*busketList[msg.sender].menuName[i].count;
+            totalPrice += customers[msg.sender].busket.menuName[i].price*customers[msg.sender].busket.menuName[i].count;
         }
         return totalPrice;
     }
 
-    function storeAccept(address _customerAddr) public {
-        //가게만실행가능능
-        stores[msg.sender].orderList[_customerAddr].storeStatus = storeState.accept;
-        customers[_customerAddr].orderList[msg.sender].storeStatus = storeState.accept;
-    }
-    
+    //주문하기
+    function ordering(uint _deliveryTip) public {
+        //고객정보에 주문 추가
+        Order memory newOrder = customers[msg.sender].goingOrder;
+        newOrder.orderID=0;
+        newOrder.customerAddr=msg.sender;
+        newOrder.storeAddr=customers[msg.sender].busket.storeAddr;
+        newOrder.customerAddress=customers[msg.sender].busket.customerAddress;
+        newOrder.storeAddress=customers[msg.sender].busket.storeAddress;
+        newOrder.menuName=customers[msg.sender].busket.menuName;
+        newOrder.foodPrice=menuTotalPriceForBusket();
+        newOrder.deliveryFee=0;
+        newOrder.deliveryTip=_deliveryTip;
+        newOrder.storeStatus=storeState.notyetChoice;
+        newOrder.riderStatus=riderState.notSelected; 
+        
+        //가게(가게맵핑)에 주문 추가
+        Order memory newOrder2 = stores_owner[customers[msg.sender].busket.storeAddr].orderList.push();
+        newOrder2.orderID=0;
+        newOrder2.customerAddr=msg.sender;
+        newOrder2.storeAddr=customers[msg.sender].busket.storeAddr;
+        newOrder2.customerAddress=customers[msg.sender].busket.customerAddress;
+        newOrder2.storeAddress=customers[msg.sender].busket.storeAddress;
+        newOrder2.menuName=customers[msg.sender].busket.menuName;
+        newOrder2.foodPrice=menuTotalPriceForBusket();
+        newOrder2.deliveryFee=0;
+        newOrder2.deliveryTip=_deliveryTip;
+        newOrder2.storeStatus=storeState.notyetChoice;
+        newOrder2.riderStatus=riderState.notSelected;
 
-    function storeDecline(address _customerAddr) public {
-        //가게만실행가능능
-        stores[msg.sender].orderList[_customerAddr].storeStatus = storeState.decline;
-        customers[_customerAddr].orderList[msg.sender].storeStatus = storeState.decline;
+        //배달 목록에 등록
+        deliveryWaitingList.push(customers[msg.sender].goingOrder);
     }
 
+
+
+
+
+/*여기서부터 재수정시작 => 주문수락,배달건 선택,요리완성 등에서 어떤 주문을 수락, 선택 ,완성
+ 하였는지 몰라서  주문건의 고유번호가 필요할 것 같음*/
+
+
+
+
+
+    //가게의 주문 수락
+    function storeAccept(uint _n) public {
+        //고객의 order상태 변경
+        customers[stores_owner[msg.sender].orderList[_n].customerAddr].goingOrder.storeStatus = storeState.accept;
+        //가게(stores_owner)의 order상태 변경
+        stores_owner[msg.sender].orderList[_n].storeStatus = storeState.accept; 
+    }
+
+    //가게의 주문 거절
+    function storeDecline(uint _n) public {
+        //고객의 order상태 변경
+        customers[stores_owner[msg.sender].orderList[_n].customerAddr].goingOrder.storeStatus = storeState.decline;
+        //가게(stores_owner)의 order상태 변경
+        stores_owner[msg.sender].orderList[_n].storeStatus = storeState.decline;
+    }
+
+    //라이더의 배달건 선택
+    function riderSelectOrder(uint _n)public{
+        //주문건의 배달상태 '선택'
+        deliveryWaitingList[_n].riderStatus=riderState.selected;
+        //고객의 order상태 변경
+        customers[stores_owner[msg.sender].orderList[_n].customerAddr].goingOrder.riderStatus = riderState.selected;
+        //고객 주문에 rider등록
+        customers[stores_owner[msg.sender].orderList[_n].customerAddr].goingOrder.riderAddr = msg.sender;
+        //가게(stores_owner)의 order상태 변경
+        stores_owner[msg.sender].orderList[_n].riderStatus = riderState.selected;
+    }
+
+    //주문건 조건이 맞을경우, 컨트랙트에 돈 지불
     function payment()public payable {
-        require(customers[msg.sender].orderList[customers[msg.sender].busket.storeAddr].storeStatus == storeState.accept);
+        //고객 주문건이 가게는수락, 라이더는 배달하기로 선택한 상태
+        require(customers[msg.sender].goingOrder.storeStatus == storeState.accept &&
+                customers[msg.sender].goingOrder.riderStatus == riderState.selected
+        );
+        //컨트랙트에 가격지불
         require(
-            msg.value==customers[msg.sender].orderList[customers[msg.sender].busket.storeAddr].foodPrice+
-            customers[msg.sender].orderList[customers[msg.sender].busket.storeAddr].deliveryFee+
-            customers[msg.sender].orderList[customers[msg.sender].busket.storeAddr].deliveryTip
+            msg.value==customers[msg.sender].goingOrder.foodPrice+
+            customers[msg.sender].goingOrder.deliveryFee+
+            customers[msg.sender].goingOrder.deliveryTip
             );
-        stores[customers[msg.sender].busket.storeAddr].orderList[msg.sender].storeStatus = storeState.checkMoney;
-        customers[msg.sender].orderList[customers[msg.sender].busket.storeAddr].storeStatus = storeState.checkMoney;
+        //가게(stores_owner)의 order상태 변경
+        for(uint i=0;i<stores_owner[customers[msg.sender].goingOrder.storeAddr].orderList.length;i++){
+            if(stores_owner[customers[msg.sender].goingOrder.storeAddr].orderList[i].customerAddr == msg.sender){
+                stores_owner[customers[msg.sender].goingOrder.storeAddr].orderList[i].storeStatus = storeState.checkMoney;
+            }
+        }
+        //배달조회목록주문건의 상태변경경
+        for(uint i=0;i<deliveryWaitingList.length;i++){
+            if(deliveryWaitingList[i].customerAddr == msg.sender && deliveryWaitingList[i].storeAddr ==customers[msg.sender].goingOrder.storeAddr){
+                deliveryWaitingList[i].storeStatus = storeState.checkMoney;
+            }
+        }
+        //고객의 order상태 변경
+        customers[msg.sender].goingOrder.storeStatus = storeState.checkMoney;
     }
 
-    Order[] deliveryWaitingList;
-
-    function cookFinish(address _customerAddr)public {
-        stores[msg.sender].orderList[_customerAddr].storeStatus = storeState.cookFinish;
-        customers[_customerAddr].orderList[msg.sender].storeStatus = storeState.cookFinish;
-        deliveryWaitingList.push(stores[customers[msg.sender].busket.storeAddr].orderList[msg.sender]);
+    function cookFinish(uint _n)public {
+        //가게(stores_owner)의 order상태 변경
+        stores_owner[msg.sender].orderList[_n].storeStatus = storeState.cookFinish;
+        //고객의 order상태 변경
+        customers[stores_owner[msg.sender].orderList[_n].customerAddr].goingOrder.storeStatus = storeState.cookFinish;
     }
 
+
+    //라이더의 배달 선택
     function riderPickOrder(uint _n)public {
-        riders[msg.sender].orders.push(stores[deliveryWaitingList[_n].storeAddr].orderList[deliveryWaitingList[_n].customerAddr]);
+        //라이더의 배달목록에 추가가
+        riders[msg.sender].orders.push(deliveryWaitingList[_n]);
+        //배달 대기목록의 주문건 상태 수정
         deliveryWaitingList[_n].storeStatus=storeState.isPicked;
         deliveryWaitingList[_n].riderStatus=riderState.isPicked;
-        stores[deliveryWaitingList[_n].storeAddr].orderList[deliveryWaitingList[_n].customerAddr].storeStatus = storeState.isPicked;
-        stores[deliveryWaitingList[_n].storeAddr].orderList[deliveryWaitingList[_n].customerAddr].riderStatus = riderState.isPicked;
-        customers[deliveryWaitingList[_n].customerAddr].orderList[deliveryWaitingList[_n].storeAddr].storeStatus = storeState.isPicked;
-        customers[deliveryWaitingList[_n].customerAddr].orderList[deliveryWaitingList[_n].storeAddr].riderStatus = riderState.isPicked;
-    }
-
-}/*
-
-
-
-
-    // createOrder에서는 가스비가 발생하지 않고, payment 함수에서만 가스비가 발생하게 할 수는 없을까?
-    // order 함수에서 고객이 직접 입력하는 정보는 배달팁
-    // 나머지는 리스트에서 선택하면 되는데 그 부분도 input으로 넣어야 하는지??
-    function createOrder(uint _deliveryTip) public payable {
-        // 고객이 매장의 메뉴를 선택하고 주문을 넣는다.
-        
-
-        ////////////////// 맵핑 방식 /////////////////////
-
-        // 석훈님이 작성한 장바구니 코드 입니당.
-        // 맵핑으로 관리하면 석훈님 쪽으로 짜면 될 것 같구요! 
-        // 리스트로 관리하면 아래에 있는 방식으로 짜보면 될 것 같아요..!
-        Order memory newOrder = bucketList[msg.sender];
-        
-        newOrder.customerAddress = msg.sender;
-        newOrder.storeName = "";
-        newOrder.deliveryFee = 0;
-        newOrder.deliveryTip = _deliveryTip;
-        newOrder.menuName = new Menu[](0);
-
-        /////////////////////////////////////////////////
-
-
-
-        //////////////////// 리스트 방식 //////////////////////
-
-        // 가게 선택 하면 가게의 메뉴가 뜨고 그 메뉴를 누르면 가격이 반영
-        // 이중맵핑을 사용 ??????
-        // mapping(string => (string => uint)) menuPrice;
-
-        uint foodPrice = menues[가게].[가격];
-        // 거리별 기본 요금
-        // 거리별 가격을 구하는 함수를 따로 만들어야 할지.. ㄱ-
-        uint deliveryFee = distanceFee();
-        // 전체 가격
-        uint totalAmount = foodPrice + deliveryFee + deliveryTip;
-
-        // orderID는 고객의 wallet 데이터와 order 숫자를 keccak으로 해서 저장? -> 겹치면 안되니까..
-
-        // 주문 리스트에 해당 주문을 넣음.
-        orderList.push();
-
-        ///////////////////////////////////////////////////////
-    }
-
-
-
-    function storeAccept() public {
-        // accept으로 바꿈
-        주문[주문id].storeState = storeStatus.accept;
-    }
-
-    function riderChoice() public {
-        // 라이더가 주문을 선택
-
-    }
-
-    // 주문의 라이더 배송 상태가 변경됨.
-    function setRiderState() public {
-        if(라이더state == deliveryFinished) {
-            payment();
-        }
-    }
-
-    // 뭔가 가게랑 라이더가 수락을 할 때 고객에게 이 함수가 자동으로 실행되면 좋을 것 같음.
-    function payment() public payable {
-        // 가게와 라이더가 수락을 해야.
-        require(storeAccept());
-        
-        // 고객의 돈이 먼저 컨트랙트에 송금됌
-        payable(address(this)).transfer(totalAmount);
-
-        // 라이더 수익
-        uint riderFee = orderList[orderID].deliveryFee + orderList[orderID].deliveryTip;
-
-        // 가게 수익
-        uint storeFee = orderList[orderID].foodPrice - orderList[orderID].deliveryFee;
-
-        if (riderState == deliveryComplete) {
-            (riders[라이더address].riderWallet).transfer(riderFee);
-            (stores[가게address].storeWallet).transfer(storeFee);
+        //고객,가게의 주문건 상태 수정
+        for(uint i=0;i<stores_owner[deliveryWaitingList[_n].storeAddr].orderList.length;i++){
+            if(stores_owner[deliveryWaitingList[_n].storeAddr].orderList[i].customerAddr == deliveryWaitingList[_n].customerAddr){
+               stores_owner[deliveryWaitingList[_n].storeAddr].orderList[i].storeStatus = storeState.isPicked;
+                stores_owner[deliveryWaitingList[_n].storeAddr].orderList[i].riderStatus = riderState.isPicked;
+                customers[deliveryWaitingList[_n].customerAddr].goingOrder.storeStatus = storeState.isPicked;
+                customers[deliveryWaitingList[_n].customerAddr].goingOrder.riderStatus = riderState.isPicked;
+            }
         }
     }
 }
-*/
