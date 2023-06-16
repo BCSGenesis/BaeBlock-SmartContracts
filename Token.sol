@@ -3,22 +3,17 @@ pragma solidity ^0.8.18;
 
 import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 
-// 토큰 구매 가능
-// 토큰으로 거래시 1% 리워드
-// 토큰 가격은 1 BBL = 1000원
-// 구매가 일어날때 minting
-
 /*
-eth로 token 사기 ✅
-token으로 음식 결제하기 ✅
-(고객 -> 컨트랙트
-컨트랙트 -> 주인)
-결제한 금액의 1% 리워드 ✅
+- 토큰 구매 (eth로 token 사기) ✅
+- 구매가 일어날때 minting ✅
+- token으로 음식 결제하기 (고객 -> 컨트랙트 : token // 컨트랙트 -> 주인 : ether) ✅ 
+- 토큰으로 거래시 결제한 금액의 1% 리워드 ✅
+- 토큰 가격은 1 BB = 1000원 or 1 BB = 1원 ; (decimals설정)
 */
 
 contract BBlock is ERC20("BaeBlock","BB"){
-    
-    uint tokenPrice = 10000000000 wei; //토큰 가격은 추후 수정
+    uint foodPrice = 12000 ; // 추후 상속받아 사용
+    uint tokenPrice = 1 wei; //토큰 가격은 추후 수정(eth-krw api로 가격 받아옴) ; Open Exchange Rates", "ExchangeRate-API", "CurrencyLayer", "Alpha Vantage"
     
     function buyTokens() external payable{
         uint tokenAmount = msg.value/tokenPrice;
@@ -32,9 +27,9 @@ contract BBlock is ERC20("BaeBlock","BB"){
     }
 
     function payWithTokens(uint tokenAmount, address payable  _storeOwner) public payable {
-        // require(tokenAmount < foodPrice);
+        require(tokenAmount <= foodPrice);
         _transfer(msg.sender, address(this), tokenAmount);
-        Reward(tokenAmount);
+        Reward(tokenAmount); //배달 완료되면 실행되도록 수정 필요
         // 가게 점주에게 알맞은 금액 전송()
         etherToStore(tokenAmount, _storeOwner);
     }
@@ -54,11 +49,12 @@ contract BBlock is ERC20("BaeBlock","BB"){
         }
     }
 
-    //decimals확인 (표시가 E-3까지 가능한건지 1토큰이 0.001토큰으로 발행되는건지..)
+    //mint(1) = 0.001토큰 ; decimal값 사용해보고 결정 (0 or 3)
     function decimals() public pure override returns (uint8) {
         return 3;
     }
     
-    //receive() external payable{}
+    receive() external payable{} //그러면 안되지만 잔고가 부족한 경우 받을 수 있게
+
 
 }
