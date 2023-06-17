@@ -6,7 +6,7 @@ contract Payment {
     struct Customer {
         address  customerWallet;
         string customerAddress;
-        Busket busket;
+        Basket basket;
         Order goingOrder;
     }
     //가게 점주 입장 구조체
@@ -36,7 +36,7 @@ contract Payment {
         uint count;
     }
     //장바구니 구조체체
-    struct Busket {
+    struct Basket {
         address customerAddr;
         address storeAddr;
         string customerAddress;
@@ -60,6 +60,10 @@ contract Payment {
         storeState storeStatus;
         riderState riderStatus;
     }
+
+    //주문번호 고유값
+    uint orderNum;
+
     //주문에 대한 가게 반응 상태
     enum storeState {decline, accept,cookFinish, isPicked,notyetChoice,checkMoney}
     //주문에 대한 배달원 반응 상태
@@ -77,23 +81,50 @@ contract Payment {
     Order[] deliveryWaitingList;
 
     //고객 등록 기능
-    function customerRegist(string memory _customerAddress) public view {
-        Customer memory newCustomer = customers[msg.sender];
+    function customerRegist(string memory _customerAddress) public  {
+        Customer memory newCustomer;
         newCustomer.customerWallet=msg.sender;
         newCustomer.customerAddress=_customerAddress;
-        newCustomer.busket=Busket(msg.sender,address(0),"","",new Menu[](0),0,0);
-        newCustomer.goingOrder=Order(0,address(0),address(0),address(0),"","", new Menu[](0),0,0,0,storeState.notyetChoice,riderState.notSelected);
+
+        customers[msg.sender]=newCustomer;
+    //     Customer memory newCustomer = customers[msg.sender];
+    //     newCustomer.customerWallet=msg.sender;
+    //     newCustomer.customerAddress=_customerAddress;
+    //     newCustomer.basket=Basket(msg.sender,address(0),"","",new Menu[](0),0,0);
+    //     newCustomer.goingOrder=Order(0,address(0),address(0),address(0),"","", new Menu[](0),0,0,0,storeState.notyetChoice,riderState.notSelected);
     }
 
     //라이더 등록 기능
-    function riderRegist() public view{       
-        Rider memory newRider=riders[msg.sender];
-        newRider.riderWallet=msg.sender;
-        newRider.orders= new Order[](0);
+    function riderRegist() public {       
+        Rider memory newRider;
+        newRider.riderWallet = msg.sender;
+
+        riders[msg.sender]=newRider;
+        // Rider memory newRider=riders[msg.sender];
+        // newRider.riderWallet=msg.sender;
+        // newRider.orders= new Order[](0);
     }
 
     //가게 등록 기능
     function storeRegist(string memory _storeName,string memory _storeAddress) public {
+        //가게들 저장된 배열(고객이 쇼핑하는 입장)
+        Store_cus memory newStore_cus;
+        newStore_cus.storeWallet=msg.sender;
+        newStore_cus.storeName=_storeName;
+        newStore_cus.storeAddress=_storeAddress;
+
+        stores_customer.push(newStore_cus);
+
+        //가게들 저장된 매핑(가게주인 관리하는 입장)
+        Store_own memory newStore_own;
+        newStore_own.storeWallet= msg.sender;
+        newStore_own.storeName=_storeName;
+        newStore_own.storeAddress=_storeAddress;
+
+        stores_owner[msg.sender]=newStore_own;
+        
+        
+        /*
         //stores 고객 배열에 가게 추가하기
         Store_cus memory newStore_cus = stores_customer.push();
         newStore_cus.storeWallet=msg.sender;
@@ -108,11 +139,12 @@ contract Payment {
         newStore_own.storeAddress=_storeAddress;
         newStore_own.menuList=new Menu[](0);
         newStore_own.orderList=new Order[](0);
+        */
     }
 
     //가게 메뉴 등록 기능
     function storeMenuRegist(string memory _menuName,uint _price)public{
-        //stores 고객 배열의 Mene[]에 메뉴 추가하기
+        //stores 고객 배열의 Menu[]에 메뉴 추가하기
         for(uint i=0;i<stores_customer.length;i++){
             if(stores_customer[i].storeWallet==msg.sender){
                 stores_customer[i].menuList.push(Menu(_menuName,_price,0));
@@ -123,30 +155,30 @@ contract Payment {
     }
 
     //장바구니에 메뉴 담기
-    function addMenuToBusket(address _storeAddr,string memory _foodName)public {
+    function addMenuTobasket(address _storeAddr,string memory _foodName)public {
         
-        customers[msg.sender].busket.customerAddr=msg.sender;
-        customers[msg.sender].busket.storeAddr=_storeAddr;
-        customers[msg.sender].busket.customerAddress=customers[msg.sender].customerAddress;
+        customers[msg.sender].basket.customerAddr=msg.sender;
+        customers[msg.sender].basket.storeAddr=_storeAddr;
+        customers[msg.sender].basket.customerAddress=customers[msg.sender].customerAddress;
         for(uint i=0;i<stores_customer.length;i++){
             if(stores_customer[i].storeWallet == _storeAddr){
                 for(uint j=0;j<stores_customer[i].menuList.length;j++){
                     if(keccak256(abi.encodePacked(stores_customer[i].menuList[j].name))==keccak256(abi.encodePacked(_foodName))){
-                        customers[msg.sender].busket.menuName.push(stores_customer[i].menuList[j]);
+                        customers[msg.sender].basket.menuName.push(stores_customer[i].menuList[j]);
                     }
                 }
             }
         }
-        customers[msg.sender].busket.foodPrice=menuTotalPriceForBusket();
-        customers[msg.sender].busket.deliveryFee=0;
+        customers[msg.sender].basket.foodPrice=menuTotalPriceForbasket();
+        customers[msg.sender].basket.deliveryFee=0;
     }
 
     //메뉴 총 가격 계산하기
-    function menuTotalPriceForBusket()public view returns(uint){
+    function menuTotalPriceForbasket()public view returns(uint){
         uint totalPrice;
-        uint menuLength = customers[msg.sender].busket.menuName.length;
+        uint menuLength = customers[msg.sender].basket.menuName.length;
         for (uint i = 0; i < menuLength; i++) {
-            totalPrice += customers[msg.sender].busket.menuName[i].price*customers[msg.sender].busket.menuName[i].count;
+            totalPrice += customers[msg.sender].basket.menuName[i].price*customers[msg.sender].basket.menuName[i].count;
         }
         return totalPrice;
     }
@@ -155,27 +187,27 @@ contract Payment {
     function ordering(uint _deliveryTip) public {
         //고객정보에 주문 추가
         Order memory newOrder = customers[msg.sender].goingOrder;
-        newOrder.orderID=0;
+        newOrder.orderID= orderNum++;
         newOrder.customerAddr=msg.sender;
-        newOrder.storeAddr=customers[msg.sender].busket.storeAddr;
-        newOrder.customerAddress=customers[msg.sender].busket.customerAddress;
-        newOrder.storeAddress=customers[msg.sender].busket.storeAddress;
-        newOrder.menuName=customers[msg.sender].busket.menuName;
-        newOrder.foodPrice=menuTotalPriceForBusket();
+        newOrder.storeAddr=customers[msg.sender].basket.storeAddr;
+        newOrder.customerAddress=customers[msg.sender].basket.customerAddress;
+        newOrder.storeAddress=customers[msg.sender].basket.storeAddress;
+        newOrder.menuName=customers[msg.sender].basket.menuName;
+        newOrder.foodPrice=menuTotalPriceForbasket();
         newOrder.deliveryFee=0;
         newOrder.deliveryTip=_deliveryTip;
         newOrder.storeStatus=storeState.notyetChoice;
         newOrder.riderStatus=riderState.notSelected; 
         
         //가게(가게맵핑)에 주문 추가
-        Order memory newOrder2 = stores_owner[customers[msg.sender].busket.storeAddr].orderList.push();
-        newOrder2.orderID=0;
+        Order memory newOrder2 = stores_owner[customers[msg.sender].basket.storeAddr].orderList.push();
+        newOrder2.orderID= orderNum++;
         newOrder2.customerAddr=msg.sender;
-        newOrder2.storeAddr=customers[msg.sender].busket.storeAddr;
-        newOrder2.customerAddress=customers[msg.sender].busket.customerAddress;
-        newOrder2.storeAddress=customers[msg.sender].busket.storeAddress;
-        newOrder2.menuName=customers[msg.sender].busket.menuName;
-        newOrder2.foodPrice=menuTotalPriceForBusket();
+        newOrder2.storeAddr=customers[msg.sender].basket.storeAddr;
+        newOrder2.customerAddress=customers[msg.sender].basket.customerAddress;
+        newOrder2.storeAddress=customers[msg.sender].basket.storeAddress;
+        newOrder2.menuName=customers[msg.sender].basket.menuName;
+        newOrder2.foodPrice=menuTotalPriceForbasket();
         newOrder2.deliveryFee=0;
         newOrder2.deliveryTip=_deliveryTip;
         newOrder2.storeStatus=storeState.notyetChoice;
@@ -194,57 +226,98 @@ contract Payment {
 
 
 
-
-
     //가게의 주문 수락
-    function storeAccept(uint _n) public {
-        //고객의 order상태 변경
-        customers[stores_owner[msg.sender].orderList[_n].customerAddr].goingOrder.storeStatus = storeState.accept;
-        //가게(stores_owner)의 order상태 변경
-        stores_owner[msg.sender].orderList[_n].storeStatus = storeState.accept; 
+    function storeAccept(uint _orderId) public {
+        for(uint i=0;i<stores_owner[msg.sender].orderList.length;i++){
+            if(stores_owner[msg.sender].orderList[i].orderID==_orderId){
+                //고객의 order상태 변경
+                customers[stores_owner[msg.sender].orderList[i].customerAddr].goingOrder.storeStatus = storeState.accept;
+                //가게(stores_owner)의 order상태 변경
+                stores_owner[msg.sender].orderList[i].storeStatus = storeState.accept; 
+            }
+        }
     }
 
     //가게의 주문 거절
-    function storeDecline(uint _n) public {
-        //고객의 order상태 변경
-        customers[stores_owner[msg.sender].orderList[_n].customerAddr].goingOrder.storeStatus = storeState.decline;
-        //가게(stores_owner)의 order상태 변경
-        stores_owner[msg.sender].orderList[_n].storeStatus = storeState.decline;
+    function storeDecline(uint _orderId) public {
+        for(uint i=0;i<stores_owner[msg.sender].orderList.length;i++){
+            if(stores_owner[msg.sender].orderList[i].orderID==_orderId){
+                //고객의 order상태 변경
+                customers[stores_owner[msg.sender].orderList[i].customerAddr].goingOrder.storeStatus = storeState.decline;
+                //가게(stores_owner)의 order상태 변경
+                stores_owner[msg.sender].orderList[i].storeStatus = storeState.decline;
+            }
+        }        
     }
 
+
+    
+    //라이더주소로 같은order의 가게주소찾기
+    function getStoreAddress(uint _orderId)public view returns(address) {
+        for(uint i=0;i<deliveryWaitingList.length;i++){
+            if(deliveryWaitingList[i].orderID==_orderId){
+                //주문건의 배달상태 '선택'
+                return deliveryWaitingList[i].storeAddr;
+            }
+        }
+    }
+
+    
+    //라이더주소로 같은order의 고객주소찾기
+    function getCustomerAddress(uint _orderId)public view returns(address) {
+        for(uint i=0;i<deliveryWaitingList.length;i++){
+            if(deliveryWaitingList[i].orderID==_orderId){
+                //주문건의 배달상태 '선택'
+                return deliveryWaitingList[i].customerAddr;
+            }
+        }
+    }
+    
+
+
     //라이더의 배달건 선택
-    function riderSelectOrder(uint _n)public{
-        //주문건의 배달상태 '선택'
-        deliveryWaitingList[_n].riderStatus=riderState.selected;
-        //고객의 order상태 변경
-        customers[stores_owner[msg.sender].orderList[_n].customerAddr].goingOrder.riderStatus = riderState.selected;
-        //고객 주문에 rider등록
-        customers[stores_owner[msg.sender].orderList[_n].customerAddr].goingOrder.riderAddr = msg.sender;
+    function riderSelectOrder(uint _orderId)public{
+        for(uint i=0;i<deliveryWaitingList.length;i++){
+            if(deliveryWaitingList[i].orderID==_orderId){
+                //주문건의 배달상태 '선택'
+                deliveryWaitingList[i].riderStatus=riderState.selected;
+            }
+        }
         //가게(stores_owner)의 order상태 변경
-        stores_owner[msg.sender].orderList[_n].riderStatus = riderState.selected;
+        for(uint i=0;i<stores_owner[getStoreAddress(_orderId)].orderList.length;i++){
+            if(stores_owner[getStoreAddress(_orderId)].orderList[i].orderID==_orderId){
+                //가게(stores_owner)의 order상태 변경
+                stores_owner[getStoreAddress(_orderId)].orderList[i].riderStatus = riderState.selected;
+            }
+        }
+        //고객의 order상태 변경
+        customers[getCustomerAddress(_orderId)].goingOrder.riderStatus = riderState.selected;
+        //고객 주문에 rider등록
+        customers[getCustomerAddress(_orderId)].goingOrder.riderAddr = msg.sender;
+
     }
 
     //주문건 조건이 맞을경우, 컨트랙트에 돈 지불
-    function payment()public payable {
+    function payment(uint _orderId)public payable {
         //고객 주문건이 가게는수락, 라이더는 배달하기로 선택한 상태
         require(customers[msg.sender].goingOrder.storeStatus == storeState.accept &&
                 customers[msg.sender].goingOrder.riderStatus == riderState.selected
         );
         //컨트랙트에 가격지불
         require(
-            msg.value==customers[msg.sender].goingOrder.foodPrice+
+            msg.value==(customers[msg.sender].goingOrder.foodPrice+
             customers[msg.sender].goingOrder.deliveryFee+
-            customers[msg.sender].goingOrder.deliveryTip
+            customers[msg.sender].goingOrder.deliveryTip)*1 ether
             );
         //가게(stores_owner)의 order상태 변경
         for(uint i=0;i<stores_owner[customers[msg.sender].goingOrder.storeAddr].orderList.length;i++){
-            if(stores_owner[customers[msg.sender].goingOrder.storeAddr].orderList[i].customerAddr == msg.sender){
+            if(stores_owner[customers[msg.sender].goingOrder.storeAddr].orderList[i].orderID == _orderId){
                 stores_owner[customers[msg.sender].goingOrder.storeAddr].orderList[i].storeStatus = storeState.checkMoney;
             }
         }
-        //배달조회목록주문건의 상태변경경
+        //배달조회목록주문건의 상태변경
         for(uint i=0;i<deliveryWaitingList.length;i++){
-            if(deliveryWaitingList[i].customerAddr == msg.sender && deliveryWaitingList[i].storeAddr ==customers[msg.sender].goingOrder.storeAddr){
+            if(deliveryWaitingList[i].orderID == _orderId ){
                 deliveryWaitingList[i].storeStatus = storeState.checkMoney;
             }
         }
@@ -252,14 +325,20 @@ contract Payment {
         customers[msg.sender].goingOrder.storeStatus = storeState.checkMoney;
     }
 
-    function cookFinish(uint _n)public {
-        //가게(stores_owner)의 order상태 변경
-        stores_owner[msg.sender].orderList[_n].storeStatus = storeState.cookFinish;
-        //고객의 order상태 변경
-        customers[stores_owner[msg.sender].orderList[_n].customerAddr].goingOrder.storeStatus = storeState.cookFinish;
+
+    //요리 완성 기능
+    function cookFinish(uint _orderId)public {       
+        for(uint i=0;i<stores_owner[msg.sender].orderList.length;i++){
+            if(stores_owner[msg.sender].orderList[i].orderID==_orderId){
+                //가게(stores_owner)의 order상태 변경
+                stores_owner[msg.sender].orderList[i].storeStatus = storeState.cookFinish;
+                //고객의 order상태 변경
+                customers[stores_owner[msg.sender].orderList[i].customerAddr].goingOrder.storeStatus = storeState.cookFinish;
+            }
+        } 
     }
 
-
+/*
     //라이더의 배달 선택
     function riderPickOrder(uint _n)public {
         //라이더의 배달목록에 추가가
@@ -277,4 +356,5 @@ contract Payment {
             }
         }
     }
+*/
 }
