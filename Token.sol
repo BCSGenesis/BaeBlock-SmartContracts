@@ -13,7 +13,8 @@ import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 
 contract BBlock is ERC20("BaeBlock","BB"){
     uint foodPrice = 12000 ; // 추후 상속받아 사용
-    uint tokenPrice = 1 wei; //토큰 가격은 추후 수정(eth-krw api로 가격 받아옴) ; Open Exchange Rates", "ExchangeRate-API", "CurrencyLayer", "Alpha Vantage"
+    uint tokenPrice = 453012905708 wei ; //토큰 가격은 추후 수정(eth-krw api로 가격 받아옴) ; Open Exchange Rates", "ExchangeRate-API", "CurrencyLayer", "Alpha Vantage"
+    uint public a = 4530129057079956 wei; // 1만원
     
     function buyTokens() external payable{
         uint tokenAmount = msg.value/tokenPrice;
@@ -49,12 +50,10 @@ contract BBlock is ERC20("BaeBlock","BB"){
         }
     }
 
-    //mint(1) = 0.001토큰 ; decimal값 사용해보고 결정 (0 or 3)
+    //mint(1) = 1토큰
     function decimals() public pure override returns (uint8) {
-        return 3;
+        return 0;
     }
     
     receive() external payable{} //그러면 안되지만 잔고가 부족한 경우 받을 수 있게
-
-
 }
