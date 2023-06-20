@@ -396,8 +396,8 @@ struct Basket {
                 newOrder.storeStatus=deliveryWaitingList[i].storeStatus;
                 newOrder.riderStatus=deliveryWaitingList[i].riderStatus;
                 //배달 대기목록의 주문건 상태 수정
-                deliveryWaitingList[i].storeStatus=storeState.isPicked;
-                deliveryWaitingList[i].storeStatus=storeState.isPicked;
+                
+                deliveryWaitingList[i].riderStatus=riderState.isPicked;
                 
                 //고객의 주문건 상태 수정
                 //customers[deliveryWaitingList[i].customerAddr].goingOrder.storeStatus=storeState.isPicked;
@@ -409,12 +409,7 @@ struct Basket {
             }
         } 
     }
-/*
-//주문에 대한 가게 반응 상태
-    enum storeState {decline, accept,cookFinish, isPicked,notyetChoice,checkMoney}
-    //주문에 대한 배달원 반응 상태
-    enum riderState {notSelected, inDelivery, isPicked, deliveryComplete}
-*/
+
     //배달 시작 기능
     function riderStartDelivery(uint _orderId)public {
         //돈 받아야 배달 출발조건건
@@ -437,7 +432,7 @@ struct Basket {
         //배달 대기목록의 배달 상태 완료로
         for(uint i=0;i<deliveryWaitingList.length;i++){
             if(deliveryWaitingList[i].orderID==_orderId){
-                deliveryWaitingList[i].riderStatus=riderState.inDelivery;
+                deliveryWaitingList[i].riderStatus=riderState.deliveryComplete;
             }
         }
         //고객의 배달 과거목록에 추가
@@ -447,11 +442,12 @@ struct Basket {
         pastOrder.orderID= customers[riders[msg.sender].orders[_orderId].customerAddr].goingOrder.orderID;
         pastOrder.customerAddr=customers[riders[msg.sender].orders[_orderId].customerAddr].goingOrder.customerAddr;
         pastOrder.storeAddr=customers[riders[msg.sender].orders[_orderId].customerAddr].goingOrder.storeAddr;
-        pastOrder.customerAddress=customers[riders[msg.sender].orders[_orderId].customerAddr].basket.customerAddress;
-        pastOrder.storeAddress=customers[riders[msg.sender].orders[_orderId].customerAddr].basket.storeAddress;
+        pastOrder.customerAddress=customers[riders[msg.sender].orders[_orderId].customerAddr].goingOrder.customerAddress;
+        pastOrder.storeAddress=customers[riders[msg.sender].orders[_orderId].customerAddr].goingOrder.storeAddress;
         for(uint i=0;i<customers[riders[msg.sender].orders[_orderId].customerAddr].basket.menuNames.length;i++){
             pastOrder.menuName[customers[riders[msg.sender].orders[_orderId].customerAddr].basket.menuNames[i].name]=customers[riders[msg.sender].orders[_orderId].customerAddr].basket.menuNames[i];
         }
+        
         pastOrder.foodPrice=customers[riders[msg.sender].orders[_orderId].customerAddr].goingOrder.foodPrice;
         pastOrder.deliveryFee=customers[riders[msg.sender].orders[_orderId].customerAddr].goingOrder.deliveryFee;
         pastOrder.deliveryTip=customers[riders[msg.sender].orders[_orderId].customerAddr].goingOrder.deliveryTip;
@@ -461,15 +457,15 @@ struct Basket {
         //고객의 goingOrder초기화
         
 
-        customers[msg.sender].goingOrder.orderID= orderNum;
-        customers[msg.sender].goingOrder.customerAddr=msg.sender;
-        customers[msg.sender].goingOrder.storeAddr=customers[msg.sender].basket.storeAddr;
-        customers[msg.sender].goingOrder.customerAddress=customers[msg.sender].basket.customerAddress;
-        customers[msg.sender].goingOrder.storeAddress=customers[msg.sender].basket.storeAddress;
+        customers[msg.sender].goingOrder.orderID= 0;
+        customers[msg.sender].goingOrder.customerAddr=address(0);
+        customers[msg.sender].goingOrder.storeAddr=address(0);
+        customers[msg.sender].goingOrder.customerAddress="";
+        customers[msg.sender].goingOrder.storeAddress="";
         for(uint i=0;i<customers[riders[msg.sender].orders[_orderId].customerAddr].basket.menuNames.length;i++){
             delete customers[msg.sender].goingOrder.menuName[customers[riders[msg.sender].orders[_orderId].customerAddr].basket.menuNames[0].name];
         }        
-        customers[msg.sender].goingOrder.foodPrice=menuTotalPriceForBasket();
+        customers[msg.sender].goingOrder.foodPrice=0;
         customers[msg.sender].goingOrder.deliveryFee=0;
         customers[msg.sender].goingOrder.deliveryTip=0;
         customers[msg.sender].goingOrder.storeStatus=storeState.notyetChoice;
@@ -482,7 +478,6 @@ struct Basket {
         customers[riders[msg.sender].orders[_orderId].customerAddr].basket.customerAddress="";
         customers[riders[msg.sender].orders[_orderId].customerAddr].basket.storeAddress="";
         for(uint i=0;i<customers[riders[msg.sender].orders[_orderId].customerAddr].basket.menuNames.length;i++){
-            customers[riders[msg.sender].orders[_orderId].customerAddr].basket.menuNames.pop();
             customers[riders[msg.sender].orders[_orderId].customerAddr].basket.menuNames.pop();
         }
         customers[riders[msg.sender].orders[_orderId].customerAddr].basket.foodPrice=0;

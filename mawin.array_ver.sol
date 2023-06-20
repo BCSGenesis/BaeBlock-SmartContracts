@@ -164,9 +164,12 @@ contract Payment {
                stores_owner[msg.sender].orderList[i].storeStatus=storeState.cookFinish;
                //고객의 order상태 변경
                customers[stores_owner[msg.sender].orderList[i].customerAddr].goingOrder.storeStatus=storeState.cookFinish;
+
+               //음식값 받기(월 몇건이상 조건 추가)
+               //payable (stores_owner[msg.sender].orderList[i].storeAddr).transfer((stores_owner[msg.sender].orderList[i].foodPrice)*1 ether);
+
             }
-        }
-        //음식값 받기
+        }                 
     }
 
     //고객--------------------------------------------------------------------------------------------
@@ -395,7 +398,16 @@ contract Payment {
                             deliveryWaitingList[j].riderStatus=riderState.deliveryComplete;
                         }
                     }
+
+
+                    /*
+                    //음식값 받기
+                    payable (stores_owner[riders[msg.sender].orders[i].storeAddr].storeWallet).transfer((riders[msg.sender].orders[i].foodPrice)*1 ether);
+                    
+                    
                     //라이더 배달비 받기
+                    payable (riders[msg.sender].riderWallet).transfer((riders[msg.sender].orders[i].deliveryFee+riders[msg.sender].orders[i].deliveryTip)*1 ether);
+                    */
 
                     
                     //고객의 배달 과거목록에 추가
