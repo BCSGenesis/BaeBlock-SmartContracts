@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.18;
 
-contract delivery_a {
+contract Payment {
 
     address public owner;
 
@@ -230,7 +230,7 @@ contract delivery_a {
     function addMenuToBusket(string memory _storeName,string memory _foodName,uint _count)public accessOnlyCustomer{
         
         
-        
+        /*
         if(customers[msg.sender].basket.menuNames.length==0){
             customers[msg.sender].basket.customerAddr=msg.sender;       
             customers[msg.sender].basket.customerAddress=customers[msg.sender].customerAddress;
@@ -268,9 +268,9 @@ contract delivery_a {
                 }
             }
         }
+        */
 
-
-        /*
+        
         customers[msg.sender].basket.customerAddr=msg.sender;       
         customers[msg.sender].basket.customerAddress=customers[msg.sender].customerAddress;
         for(uint i=0;i<stores_customer.length;i++){
@@ -286,7 +286,7 @@ contract delivery_a {
         }       
         customers[msg.sender].basket.foodPrice=menuTotalPriceForBasket();
         customers[msg.sender].basket.deliveryFee=0;  
-        */
+        
     }
 
     //메뉴 총 가격 계산하기
