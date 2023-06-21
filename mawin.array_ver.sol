@@ -94,10 +94,26 @@ contract Payment {
     //주문고유번호
     uint public orderNum;
 
+    //가게회원가입자들만 접근할 수 있는 modifier
+    modifier accessOnlyStore(){
+        require(msg.sender==stores_owner[msg.sender].storeWallet);
+        _;
+    }
+    //고객회원가입자들만 접근할 수 있는 modifier
+    modifier accessOnlyCustomer(){
+        require(msg.sender==customers[msg.sender].customerWallet);
+        _;
+    }
+    //라이더회원가입자들만 접근할 수 있는 modifier
+    modifier accessOnlyRider(){
+        require(msg.sender==riders[msg.sender].riderWallet);
+        _;
+    }
+
     //가게------------------------------------------------------------------------------------------------
 
     //가게 가입 기능
-    function storeRegist(string memory _storeName,string memory _storeAddress) public {
+    function storeRegist(string memory _storeName,string memory _storeAddress) public accessOnlyStore {
         //stores_customer 배열에 가게 추가하기
         Store_cus storage newStore_cus = stores_customer.push();
         newStore_cus.storeWallet=msg.sender;
@@ -114,7 +130,7 @@ contract Payment {
     }
 
     //가게 메뉴 등록 기능
-    function storeMenuRegist(string memory _menuName,uint _price)public{
+    function storeMenuRegist(string memory _menuName,uint _price)public accessOnlyStore{
         //stores_customer 배열의 Menu[]에 메뉴 추가하기
         for(uint i=0;i<stores_customer.length;i++){
             if(stores_customer[i].storeWallet==msg.sender){
@@ -127,7 +143,7 @@ contract Payment {
 
 
     //가게의 주문 수락
-    function storeAccept(uint _orderId) public {
+    function storeAccept(uint _orderId) public accessOnlyStore{
         for(uint i=0;i<stores_owner[msg.sender].orderList.length;i++){
             if(stores_owner[msg.sender].orderList[i].orderID==_orderId){
                 //고객의 order상태 변경
@@ -139,7 +155,7 @@ contract Payment {
     }
 
     //가게의 주문 거절
-    function storeDecline(uint _orderId) public {
+    function storeDecline(uint _orderId) public accessOnlyStore{
         for(uint i=0;i<stores_owner[msg.sender].orderList.length;i++){
             //고객의 order상태 변경
             if(customers[stores_owner[msg.sender].orderList[i].customerAddr].goingOrder.orderID==_orderId){
@@ -165,10 +181,13 @@ contract Payment {
     }
 
     //가게의 요리 완료
-    function cookFinish(uint _orderId)public {
+    function cookFinish(uint _orderId)public payable accessOnlyStore {
         
         for(uint i=0;i<stores_owner[msg.sender].orderList.length;i++){
             if(stores_owner[msg.sender].orderList[i].orderID==_orderId){
+                //고객과 같은가격의 배달비 지불하기
+                require(msg.value==(stores_owner[msg.sender].orderList[i].deliveryFee)*1 ether);
+                // payable (address(this)).transfer((stores_owner[msg.sender].orderList[i].deliveryFee)*1 ether);
                 //가게(stores_owner)의 order상태 변경
                 stores_owner[msg.sender].orderList[i].storeStatus=storeState.cookFinish;
                 //고객의 order상태 변경
@@ -188,22 +207,19 @@ contract Payment {
                 }else{
                     payable (stores_owner[msg.sender].orderList[i].storeAddr).transfer((stores_owner[msg.sender].orderList[i].foodPrice)*1 ether);
                 }
-               
-               
-
             }
         }                 
     }
 
     //가게의 주문 조회
-    function myStoreOrder()public view returns(Order[] memory){
+    function myStoreOrder()public view accessOnlyStore returns(Order[] memory){
         return (stores_owner[msg.sender].orderList);
     }
 
     //고객--------------------------------------------------------------------------------------------
 
     //고객 회원가입 기능
-    function customerRegist(string memory _customerNick,string memory _customerAddress) public {
+    function customerRegist(string memory _customerNick,string memory _customerAddress) public accessOnlyCustomer{
         Customer storage newCustomer=customers[msg.sender];
         newCustomer.customerWallet=msg.sender;
         newCustomer.customerNick=_customerNick;
@@ -211,7 +227,7 @@ contract Payment {
     }
 
     //장바구니에 메뉴 담기
-    function addMenuToBusket(string memory _storeName,string memory _foodName,uint _count)public {
+    function addMenuToBusket(string memory _storeName,string memory _foodName,uint _count)public accessOnlyCustomer{
         customers[msg.sender].basket.customerAddr=msg.sender;       
         customers[msg.sender].basket.customerAddress=customers[msg.sender].customerAddress;
         for(uint i=0;i<stores_customer.length;i++){
@@ -230,7 +246,7 @@ contract Payment {
     }
 
     //메뉴 총 가격 계산하기
-    function menuTotalPriceForBasket()public view returns(uint){
+    function menuTotalPriceForBasket()public view accessOnlyCustomer returns(uint){
         uint totalPrice;
         uint menuLength = customers[msg.sender].basket.menuNames.length;
         for (uint i = 0; i < menuLength; i++) {
@@ -240,7 +256,7 @@ contract Payment {
     }
 
     //주문하기
-    function ordering(uint _deliveryTip) public {
+    function ordering(uint _deliveryTip) public accessOnlyCustomer{
         //고객정보에 주문 추가
         orderNum++;
         Order storage newOrder = customers[msg.sender].goingOrder;
@@ -290,7 +306,7 @@ contract Payment {
     }
 
     //메뉴 총 가격 계산하기2
-    function menuTotalPriceForOrder()public view returns(uint){
+    function menuTotalPriceForOrder()public view accessOnlyCustomer returns(uint){
         uint totalPrice;
         uint menuLength = customers[msg.sender].goingOrder.menuName.length;
         for (uint i = 0; i < menuLength; i++) {
@@ -300,7 +316,7 @@ contract Payment {
     }
 
     //주문건 조건이 맞을경우, 컨트랙트에 돈 지불
-    function payment()public payable {
+    function payment()public payable accessOnlyCustomer{
         //고객 주문건이 가게는수락, 라이더는 배달하기로 선택한 상태
         require(customers[msg.sender].goingOrder.storeStatus==storeState.accept &&
                 customers[msg.sender].goingOrder.riderStatus==riderState.isPicked);
@@ -334,17 +350,20 @@ contract Payment {
         }
     }
 
-    function myCustomerGoingOrder()public view returns(Order memory){
+    function myCustomerGoingOrder()public view accessOnlyCustomer returns(Order memory){
         return customers[msg.sender].goingOrder;
     }
-    function myCustomerPastOrder()public view returns(Order[] memory){
+    function myCustomerPastOrder()public view accessOnlyCustomer returns(Order[] memory){
         return customers[msg.sender].pastOrderList;
+    }
+    function myCustomerBasket()public view accessOnlyCustomer returns(Basket memory){
+        return customers[msg.sender].basket;
     }
 
     //라이더---------------------------------------------------------------------------------------------
 
     //라이더 회원가입 기능
-    function riderRegist(string memory _deliveryType,string memory _deliveryZone) public{
+    function riderRegist(string memory _deliveryType,string memory _deliveryZone) public accessOnlyRider{
         Rider storage newRider = riders[msg.sender];
         newRider.riderWallet = msg.sender;
         newRider.deliveryType = _deliveryType;
@@ -352,7 +371,7 @@ contract Payment {
     }
 
     //라이더의 배달 선택
-    function riderPickOrder(uint _orderId)public {
+    function riderPickOrder(uint _orderId)public accessOnlyRider{
         //라이더의 배달목록에 추가
         for(uint i=0;i<deliveryWaitingList.length;i++){
             if(deliveryWaitingList[i].orderID==_orderId){
@@ -406,7 +425,7 @@ contract Payment {
     }
 
     //배달 시작 기능
-    function riderStartDelivery(uint _orderId)public {
+    function riderStartDelivery(uint _orderId)public accessOnlyRider{
         for(uint i=0;i<riders[msg.sender].orders.length;i++){
             if(riders[msg.sender].orders[i].orderID==_orderId){
                 //돈 받아야 배달 출발조건
@@ -434,7 +453,7 @@ contract Payment {
     }
 
     //배달 완료 기능
-    function riderFinishDelivery(uint _orderId)public {
+    function riderFinishDelivery(uint _orderId)public accessOnlyRider{
         for(uint i=0;i<riders[msg.sender].orders.length;i++){
             if(riders[msg.sender].orders[i].orderID==_orderId){
                 //배달진행중이어야하는 조건
@@ -461,11 +480,14 @@ contract Payment {
                     /*
                     //음식값 받기
                     payable (stores_owner[riders[msg.sender].orders[i].storeAddr].storeWallet).transfer((riders[msg.sender].orders[i].foodPrice)*1 ether);
-                    
-                    
-                    //라이더 배달비 받기
-                    payable (riders[msg.sender].riderWallet).transfer((riders[msg.sender].orders[i].deliveryFee+riders[msg.sender].orders[i].deliveryTip)*1 ether);
                     */
+                    
+                    //라이더 배달비 받기(고객으로부터)
+                    payable (riders[msg.sender].riderWallet).transfer((riders[msg.sender].orders[i].deliveryFee+riders[msg.sender].orders[i].deliveryTip)*1 ether);
+
+                    //라이더 배달비 받기(가게로부터)
+                    payable (riders[msg.sender].riderWallet).transfer((riders[msg.sender].orders[i].deliveryFee)*1 ether);
+                    
 
                     
                     //고객의 배달 과거목록에 추가
@@ -474,6 +496,7 @@ contract Payment {
                     pastOrder.customerAddr=customers[riders[msg.sender].orders[i].customerAddr].goingOrder.customerAddr;
 
                     pastOrder.storeAddr=customers[riders[msg.sender].orders[i].customerAddr].goingOrder.storeAddr;
+                    pastOrder.riderAddr=customers[riders[msg.sender].orders[i].customerAddr].goingOrder.riderAddr;
                     
                     pastOrder.customerAddress=customers[riders[msg.sender].orders[i].customerAddr].goingOrder.customerAddress;
                     pastOrder.storeAddress=customers[riders[msg.sender].orders[i].customerAddr].goingOrder.storeAddress;
@@ -490,21 +513,22 @@ contract Payment {
                     pastOrder.riderStatus=customers[riders[msg.sender].orders[i].customerAddr].goingOrder.riderStatus; 
                     
                     //고객의 goingOrder초기화
-                    customers[msg.sender].goingOrder.orderID= 0;
-                    customers[msg.sender].goingOrder.customerAddr=address(0);
-                    customers[msg.sender].goingOrder.storeAddr=address(0);
-                    customers[msg.sender].goingOrder.customerAddress="";
-                    customers[msg.sender].goingOrder.storeAddress="";
+                    customers[riders[msg.sender].orders[i].customerAddr].goingOrder.orderID= 0;
+                    customers[riders[msg.sender].orders[i].customerAddr].goingOrder.customerAddr=address(0);
+                    customers[riders[msg.sender].orders[i].customerAddr].goingOrder.storeAddr=address(0);
+                    customers[riders[msg.sender].orders[i].customerAddr].goingOrder.riderAddr=address(0);
+                    customers[riders[msg.sender].orders[i].customerAddr].goingOrder.customerAddress="";
+                    customers[riders[msg.sender].orders[i].customerAddr].goingOrder.storeAddress="";
                     
                     for(uint k=0; k < customers[riders[msg.sender].orders[i].customerAddr].goingOrder.menuName.length ; k++){
                         customers[riders[msg.sender].orders[i].customerAddr].goingOrder.menuName.pop();
                     }        
                     
-                    customers[msg.sender].goingOrder.foodPrice=0;
-                    customers[msg.sender].goingOrder.deliveryFee=0;
-                    customers[msg.sender].goingOrder.deliveryTip=0;
-                    customers[msg.sender].goingOrder.storeStatus=storeState.notyetChoice;
-                    customers[msg.sender].goingOrder.riderStatus=riderState.notSelected; 
+                    customers[riders[msg.sender].orders[i].customerAddr].goingOrder.foodPrice=0;
+                    customers[riders[msg.sender].orders[i].customerAddr].goingOrder.deliveryFee=0;
+                    customers[riders[msg.sender].orders[i].customerAddr].goingOrder.deliveryTip=0;
+                    customers[riders[msg.sender].orders[i].customerAddr].goingOrder.storeStatus=storeState.notyetChoice;
+                    customers[riders[msg.sender].orders[i].customerAddr].goingOrder.riderStatus=riderState.notSelected; 
 
                     // //고객의 basket초기화
                     customers[riders[msg.sender].orders[i].customerAddr].basket.customerAddr=address(0);
@@ -522,13 +546,8 @@ contract Payment {
         }
     }
 
-    //배달대기목록조회
-    function deliverylistOrder()public view returns(Order[] memory){
-        return deliveryWaitingList;
-    }
-
     //라이더 자기 주문 조회
-    function myRiderOrder()public view returns(Order[] memory){
+    function myRiderOrder()public view accessOnlyRider returns(Order[] memory){
         return riders[msg.sender].orders;
     }
 
@@ -538,6 +557,11 @@ contract Payment {
     function withdraw(uint _amount)public {
         require(msg.sender == owner);
         payable (msg.sender).transfer(_amount * 1 ether);
+    }
+
+    //배달대기목록조회
+    function deliverylistOrder()public view returns(Order[] memory){
+        return deliveryWaitingList;
     }
 
 }
