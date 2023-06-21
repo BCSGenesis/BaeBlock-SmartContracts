@@ -228,6 +228,49 @@ contract Payment {
 
     //장바구니에 메뉴 담기
     function addMenuToBusket(string memory _storeName,string memory _foodName,uint _count)public accessOnlyCustomer{
+        
+        
+        
+        if(customers[msg.sender].basket.menuNames.length==0){
+            customers[msg.sender].basket.customerAddr=msg.sender;       
+            customers[msg.sender].basket.customerAddress=customers[msg.sender].customerAddress;
+            for(uint i=0;i<stores_customer.length;i++){
+                if(keccak256(abi.encodePacked(stores_customer[i].storeName)) == keccak256(abi.encodePacked(_storeName))){
+                    customers[msg.sender].basket.storeAddr=stores_customer[i].storeWallet;
+                    customers[msg.sender].basket.storeAddress = stores_customer[i].storeAddress;
+                    for(uint j=0;j<stores_customer[i].menuList.length;j++){
+                        if(keccak256(abi.encodePacked(stores_customer[i].menuList[j].name))==keccak256(abi.encodePacked(_foodName))){
+                            customers[msg.sender].basket.menuNames.push(Menu(stores_customer[i].menuList[j].name,stores_customer[i].menuList[j].price,_count));
+                        }                    
+                    }
+                }
+            }       
+            customers[msg.sender].basket.foodPrice=menuTotalPriceForBasket();
+            customers[msg.sender].basket.deliveryFee=0;  
+        }else{
+            for(uint i=0;i<stores_customer.length;i++){
+                if(customers[msg.sender].basket.storeAddr==stores_customer[i].storeWallet){
+                    if(keccak256(abi.encodePacked(stores_customer[i].storeName))==keccak256(abi.encodePacked(_storeName))){
+                        customers[msg.sender].basket.customerAddr=msg.sender;       
+                        customers[msg.sender].basket.customerAddress=customers[msg.sender].customerAddress;
+                        for(uint k=0;k<stores_customer.length;k++){
+                            if(keccak256(abi.encodePacked(stores_customer[k].storeName)) == keccak256(abi.encodePacked(_storeName))){
+                                customers[msg.sender].basket.storeAddr=stores_customer[k].storeWallet;
+                                customers[msg.sender].basket.storeAddress = stores_customer[k].storeAddress;
+                                for(uint l=0;l<stores_customer[k].menuList.length;l++){
+                                    if(keccak256(abi.encodePacked(stores_customer[k].menuList[l].name))==keccak256(abi.encodePacked(_foodName))){
+                                        customers[msg.sender].basket.menuNames.push(Menu(stores_customer[k].menuList[l].name,stores_customer[k].menuList[l].price,_count));
+                                    }                    
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+
+        /*
         customers[msg.sender].basket.customerAddr=msg.sender;       
         customers[msg.sender].basket.customerAddress=customers[msg.sender].customerAddress;
         for(uint i=0;i<stores_customer.length;i++){
@@ -242,7 +285,8 @@ contract Payment {
             }
         }       
         customers[msg.sender].basket.foodPrice=menuTotalPriceForBasket();
-        customers[msg.sender].basket.deliveryFee=0;   
+        customers[msg.sender].basket.deliveryFee=0;  
+        */
     }
 
     //메뉴 총 가격 계산하기
