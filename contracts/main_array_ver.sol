@@ -602,7 +602,7 @@ contract Payment {
         require(msg.sender == owner);
         payable (msg.sender).transfer(_amount * 1 ether);
     }
-
+    
     //배달대기목록조회
     function deliverylistOrder()public view returns(Order[] memory){
         return deliveryWaitingList;
