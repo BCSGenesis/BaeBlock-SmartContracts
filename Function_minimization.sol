@@ -104,7 +104,7 @@ contract Payment is Ownable {
     //배달시작
     function startDelivery(uint _orderID)public{
         require(searchOrder[_orderID].rWallet == msg.sender);
-        require(searchOrder[_orderID].status == orderState.store_cookFinish );
+        require(searchOrder[_orderID].status == orderState.rider_accept);
         searchOrder[_orderID].status = orderState.rider_inDelivery;
     }
 
@@ -117,6 +117,7 @@ contract Payment is Ownable {
 
     //거래 완료 후, 가게와 배달원에게 돈 입금
     function orderComplete(uint _orderID, bool) public {
+        require(searchOrder[_orderID].status == orderState.rider_deliveryComplete);   
         uint total = (searchOrder[_orderID].deliveryFee *2) + searchOrder[_orderID].deliveryTip;
         // if() : 고객이 음식받음 버튼을 누르면 지급됨 (일정시간이 지나거나 owner가 눌러줘도 가능하도록)
         payable(searchOrder[_orderID].rWallet).transfer(totalFee); 
