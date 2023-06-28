@@ -28,7 +28,7 @@ contract BBlock is ERC20("BaeBlock","BB"){
     }
 
     function payWithTokens(uint tokenAmount, address payable  _storeOwner) public payable {
-        require(tokenAmount <= foodPrice);
+        require(tokenAmount >= foodPrice);
         _transfer(msg.sender, address(this), tokenAmount);
         Reward(tokenAmount); //배달 완료되면 실행되도록 수정 필요
         // 가게 점주에게 알맞은 금액 전송()
