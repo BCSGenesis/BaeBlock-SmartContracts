@@ -2,8 +2,18 @@
 pragma solidity ^0.8.18;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "./HS-rider.sol";
 
-contract Payment is Ownable {
+contract Payment is Ownable,delivery {
+
+// HS-rider 가져오기-----------------------------------------------------------------
+   
+    delivery riderContract;
+
+    constructor(address _riderContractAddr){
+        riderContract= delivery(_riderContractAddr);
+
+    }
 
 // 변수선언 -----------------------------------------------------------------------
     
@@ -110,11 +120,20 @@ contract Payment is Ownable {
     //배달원 지정
     function setDelivery(uint _orderID) public {
         require(members[msg.sender].role == Role.rider);                         //배달기사 회원가입여부 확인
+        //이 배달기사가 배달 권한 nft를 가졌는지
+        require(riderContract.getNftTime(msg.sender)>=block.timestamp,"You don't have deliveryNft or Nft is expired");
         require(searchOrder[_orderID].rWallet == address(0));                    //배달기사 지정 안된 상태인지 확인
         require(searchOrder[_orderID].status == orderState.store_cookFinish);       //가게가 주문 받은 상태인지 확인
         searchOrder[_orderID].rWallet = msg.sender;
         searchOrder[_orderID].status = orderState.rider_accept;
     }
+
+    //배달선택(setDelivery)이 안되면, nftMarket가서 burn버튼 클릭하고,nft구매버튼으로 민팅팅
+    function burnRiderNft()public {       
+            riderContract.burn(msg.sender,riderContract.getTokenId(msg.sender));        
+    }
+
+    //배달권 민팅은 원본컨트랙트에서 실행해야하는듯..msg.value가 전달이 안됨..
 
     //배달시작
     function startDelivery(uint _orderID)public{
