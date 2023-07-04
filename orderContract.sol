@@ -85,7 +85,7 @@ contract Payment is Ownable {
 // 결제 ------------------------------------------------------------------------------
     //고객이 주문하고 돈을 보냄
     function ordering(address _sWallet, uint _foodPrice, uint _deliveryFee, uint _deliveryTip) public payable returns(uint){
-        require(msg.value == (_foodPrice + _deliveryFee + _deliveryTip)*1 ether);           //잔고 확인
+        require(msg.value == (_foodPrice + _deliveryFee + _deliveryTip));           //잔고 확인
         require(members[_sWallet].role == Role.store);                              //사용가능한 가게인지 확인
         searchOrder[orderID] = Order(msg.sender, _sWallet, address(0) ,_foodPrice, _deliveryFee, _deliveryTip, orderState.order);
         orderID++;
@@ -101,12 +101,12 @@ contract Payment is Ownable {
         require(msg.sender == searchOrder[_orderID].sWallet, "You can't access this order.");           //가게 주인확인
         require(searchOrder[_orderID].status == orderState.order, "This order is not available.");      //주문 상태 확인
         if(_bool==true){
-            require(msg.value == (searchOrder[_orderID].deliveryFee)*1 ether, "You should pay DeliveryFee");  //배달비 확인
+            require(msg.value == (searchOrder[_orderID].deliveryFee), "You should pay DeliveryFee");  //배달비 확인
             searchOrder[_orderID].status = orderState.store_accept;                                      //주문 수락
         }else{
             searchOrder[_orderID].status = orderState.store_decline;                                     //주문거절
             uint refundPrice = searchOrder[_orderID].foodPrice + searchOrder[_orderID].deliveryFee + searchOrder[_orderID].deliveryTip;
-            payable (searchOrder[_orderID].cWallet).transfer(refundPrice*1 ether);                               //환불 
+            payable (searchOrder[_orderID].cWallet).transfer(refundPrice);                               //환불 
         }
     }
 
@@ -178,16 +178,16 @@ contract Payment is Ownable {
         require(searchOrder[_orderID].cWallet == msg.sender); // 고객이 음식받음 버튼을 누르면 지급됨
         uint totalFee = (searchOrder[_orderID].deliveryFee *2) + searchOrder[_orderID].deliveryTip;
         // + 일정시간이 지나거나 owner가 눌러줘도 가능하도록
-        payable(searchOrder[_orderID].rWallet).transfer(totalFee*1 ether); 
+        payable(searchOrder[_orderID].rWallet).transfer(totalFee); 
 
         if(nftOwner > block.timestamp ) { 
             emit Result("You have an NFT. Platform fees are waived.");
-            payable(searchOrder[_orderID].sWallet).transfer(searchOrder[_orderID].foodPrice*1 ether); 
+            payable(searchOrder[_orderID].sWallet).transfer(searchOrder[_orderID].foodPrice); 
             searchOrder[_orderID].status = orderState.done;
         } else{ 
              emit Result("You don't have an NFT or your usage period has expired.  The platform fee is 2% of the foodprice.");
              uint FoodPrice = searchOrder[_orderID].foodPrice;
-             payable(searchOrder[_orderID].sWallet).transfer((FoodPrice-(FoodPrice * platformFee) /100)*1 ether); //수수료 부과
+             payable(searchOrder[_orderID].sWallet).transfer((FoodPrice-(FoodPrice * platformFee) /100)); //수수료 부과
              searchOrder[_orderID].status = orderState.done;
         }
     }

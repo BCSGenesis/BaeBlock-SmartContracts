@@ -10,7 +10,7 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 
 contract delivery is ERC1155Supply,Ownable {
     
-    uint public cost = 1 ether;                         //민팅 비용
+    uint public cost = 1 ;                         //민팅 비용
     uint public maxSupply = 10000;                      //nft 공급량
     uint public nftPerAddressLimit = 1;                 //지갑당 nft 제한
     mapping(address => uint) public _balances;          //지갑주소당 토큰 아이디 저장

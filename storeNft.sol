@@ -12,7 +12,7 @@ contract store is ERC1155 {
 
     uint public nftPerAddressLimit = 1; 
     uint ownerMintedCount;  
-    uint public cost = 3 ether; 
+    uint public cost = 3 ; 
     uint firstMint = 0;
     mapping(address => uint) public _balances;          
     mapping(uint => uint) private _mintCounts; 
