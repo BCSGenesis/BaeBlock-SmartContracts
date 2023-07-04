@@ -2,8 +2,8 @@
 pragma solidity ^0.8.18;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./HS-rider.sol";
-import "./HS-store.sol";
+import "./riderNft.sol";
+import "./storeNft.sol";
 
 
 contract Payment is Ownable {
