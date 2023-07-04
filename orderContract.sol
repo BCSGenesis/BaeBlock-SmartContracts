@@ -178,16 +178,16 @@ contract Payment is Ownable {
         require(searchOrder[_orderID].cWallet == msg.sender); // 고객이 음식받음 버튼을 누르면 지급됨
         uint totalFee = (searchOrder[_orderID].deliveryFee *2) + searchOrder[_orderID].deliveryTip;
         // + 일정시간이 지나거나 owner가 눌러줘도 가능하도록
-        payable(searchOrder[_orderID].rWallet).transfer(totalFee); 
+        payable(searchOrder[_orderID].rWallet).transfer(totalFee*1 ether); 
 
         if(nftOwner > block.timestamp ) { 
             emit Result("You have an NFT. Platform fees are waived.");
-            payable(searchOrder[_orderID].sWallet).transfer(searchOrder[_orderID].foodPrice); 
+            payable(searchOrder[_orderID].sWallet).transfer(searchOrder[_orderID].foodPrice*1 ether); 
             searchOrder[_orderID].status = orderState.done;
         } else{ 
              emit Result("You don't have an NFT or your usage period has expired.  The platform fee is 2% of the foodprice.");
              uint FoodPrice = searchOrder[_orderID].foodPrice;
-             payable(searchOrder[_orderID].sWallet).transfer(FoodPrice-(FoodPrice * platformFee) /100); //수수료 부과
+             payable(searchOrder[_orderID].sWallet).transfer((FoodPrice-(FoodPrice * platformFee) /100)*1 ether); //수수료 부과
              searchOrder[_orderID].status = orderState.done;
         }
     }
