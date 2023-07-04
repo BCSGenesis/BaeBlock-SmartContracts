@@ -40,7 +40,7 @@ contract delivery is ERC1155Supply,Ownable {
           require(DeliveryNft.length < 10000, "The number of members is full"); //총 공급량 확인
           require(ownerMintedCount < nftPerAddressLimit, "max NFT per address exceeded"); //소지 제한
           uint tokenId = _tokenIds.current()+1;                                 //토큰의 아이디 카운트
-          require(msg.value >= (cost * amount*1 ether), "insufficient funds");            //잔액 확인
+          require(msg.value >= (cost * amount), "insufficient funds");            //잔액 확인
           require(DeliveryNft.length + amount < maxSupply, "max NFT limit exceeded");      //민팅 제한
           _tokenIds.increment();                                                //위 조건 통과시 토큰 아이디 증가
           _mint(msg.sender, tokenId, amount, "");
