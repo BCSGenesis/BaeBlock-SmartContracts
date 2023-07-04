@@ -116,6 +116,11 @@ contract Payment is Ownable,delivery {
         require(searchOrder[_orderID].status == orderState.store_accept);
         searchOrder[_orderID].status = orderState.store_cookFinish;
     }
+    
+    //web3에서 HS-rider컨트랙트의 getRiderNftTime(address)-getBlockTimeStamp() 값을 usestate변수로 받아 남은 일수 표현
+    function getBlockTimeStamp()public view returns(uint){
+        return block.timestamp;
+    }
 
     //배달원 지정
     function setDelivery(uint _orderID) public {
