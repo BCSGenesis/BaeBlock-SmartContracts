@@ -121,7 +121,7 @@ contract Payment is Ownable,delivery {
     function setDelivery(uint _orderID) public {
         require(members[msg.sender].role == Role.rider);                         //배달기사 회원가입여부 확인
         //이 배달기사가 배달 권한 nft를 가졌는지
-        require(riderContract.getNftTime(msg.sender)>=block.timestamp,"You don't have deliveryNft or Nft is expired");
+        require(riderContract.getRiderNftTime(msg.sender)>=block.timestamp,"You don't have deliveryNft or Nft is expired");
         require(searchOrder[_orderID].rWallet == address(0));                    //배달기사 지정 안된 상태인지 확인
         require(searchOrder[_orderID].status == orderState.store_cookFinish);       //가게가 주문 받은 상태인지 확인
         searchOrder[_orderID].rWallet = msg.sender;
@@ -130,7 +130,7 @@ contract Payment is Ownable,delivery {
 
     //배달선택(setDelivery)이 안되면, nftMarket가서 burn버튼 클릭하고,nft구매버튼으로 민팅팅
     function burnRiderNft()public {       
-            riderContract.burn(msg.sender,riderContract.getTokenId(msg.sender));        
+            riderContract.burn(msg.sender,riderContract.getRiderTokenId(msg.sender));        
     }
 
     //배달권 민팅은 원본컨트랙트에서 실행해야하는듯..msg.value가 전달이 안됨..

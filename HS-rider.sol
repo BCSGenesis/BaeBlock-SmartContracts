@@ -67,10 +67,10 @@ contract delivery is ERC1155Supply,Ownable {
     }
 
     //함수 실행시킨 라이더가 가지고 있는 토큰의 타임스탬프가 몇인지
-    function getNftTime(address _a)public view returns(uint){
+    function getRiderNftTime(address _a)public view returns(uint){
         return _burnTimestamps[_balances[_a]];
     }
-    function getTokenId(address _a) external view returns (uint) {
+    function getRiderTokenId(address _a) external view returns (uint) {
         return _balances[_a];
     }
 
