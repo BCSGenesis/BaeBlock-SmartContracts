@@ -17,13 +17,14 @@ contract Payment is Ownable {
         Store= store(payable (_storeContractAddr));
     }
 
-    uint platformFee = 2;   //플랫폼 수수료
+    uint platformFee = 3;   //플랫폼 수수료
     event Result(string message);
 
 // 변수선언 -----------------------------------------------------------------------
-    
+   
     //주문 번호
-    uint orderID;       
+    uint orderID;
+    event returnOrderID(uint orderID);    
     
     //주문 구조체
     struct Order {
@@ -66,13 +67,14 @@ contract Payment is Ownable {
     //회원 목록
     mapping(address => Member) members;
 
+
 // 정보등록 -----------------------------------------------------------------------
 
     //회원가입
     function Register(uint _role) public {
-        if(_role==1){
+        if(_role==0){
             members[msg.sender]= Member(msg.sender, Role.store);
-        }else if(_role==2){
+        }else if(_role==1){
             members[msg.sender]= Member(msg.sender, Role.rider);
         }
     }
@@ -83,13 +85,13 @@ contract Payment is Ownable {
     }
 
 // 결제 ------------------------------------------------------------------------------
-    //고객이 주문하고 돈을 보냄
-    function ordering(address _sWallet, uint _foodPrice, uint _deliveryFee, uint _deliveryTip) public payable returns(uint){
+ //고객이 주문하고 돈을 보냄
+    function ordering(address _sWallet, uint _foodPrice, uint _deliveryFee, uint _deliveryTip) public payable {
         require(msg.value == (_foodPrice + _deliveryFee + _deliveryTip));           //잔고 확인
         require(members[_sWallet].role == Role.store);                              //사용가능한 가게인지 확인
         searchOrder[orderID] = Order(msg.sender, _sWallet, address(0) ,_foodPrice, _deliveryFee, _deliveryTip, orderState.order);
+        emit returnOrderID(orderID);
         orderID++;
-        return(orderID-1);
     }
     //확인
     function returnOrder(uint _orderID)public view returns(Order memory){
@@ -127,7 +129,7 @@ contract Payment is Ownable {
 
 
     
-    
+
     // function getRiderNftTime(address _a)public  view returns(uint){
     //     return riderContract.getRiderNftTime(_a);
     // }
@@ -175,7 +177,7 @@ contract Payment is Ownable {
         
         // store Store = new store();                                            //Genesis.sol 파일 인스턴스화
         uint nftOwner = Store.getMappingAccount();                            //tokenId가 저장되는 매핑 함수               
-        require(searchOrder[_orderID].cWallet == msg.sender); // 고객이 음식받음 버튼을 누르면 지급됨
+        require(searchOrder[_orderID].cWallet == msg.sender && searchOrder[_orderID].status == orderState.rider_deliveryComplete);  // 고객이 음식받음 버튼을 누르면 지급됨
         uint totalFee = (searchOrder[_orderID].deliveryFee *2) + searchOrder[_orderID].deliveryTip;
         // + 일정시간이 지나거나 owner가 눌러줘도 가능하도록
         payable(searchOrder[_orderID].rWallet).transfer(totalFee); 
