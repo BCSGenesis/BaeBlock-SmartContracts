@@ -173,10 +173,10 @@ contract Payment is Ownable {
 
     
     //거래 완료 후, 가게와 배달원에게 돈 입금
-    function orderComplete2(uint _orderID, bool) public {
+    function orderComplete(uint _orderID, bool) public {
         
         // store Store = new store();                                            //Genesis.sol 파일 인스턴스화
-        uint nftOwner = Store.getMappingAccount();                            //tokenId가 저장되는 매핑 함수               
+        uint nftOwner = Store.getMappingAccount(searchOrder[_orderID].sWallet);                            //tokenId가 저장되는 매핑 함수               
         require(searchOrder[_orderID].cWallet == msg.sender && searchOrder[_orderID].status == orderState.rider_deliveryComplete);  // 고객이 음식받음 버튼을 누르면 지급됨
         uint totalFee = (searchOrder[_orderID].deliveryFee *2) + searchOrder[_orderID].deliveryTip;
         // + 일정시간이 지나거나 owner가 눌러줘도 가능하도록
