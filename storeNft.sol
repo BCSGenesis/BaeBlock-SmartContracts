@@ -53,11 +53,11 @@ contract store is ERC1155 {
           }
       }
 
-      function getMappingAccount() external view returns (uint){
-    return _burnTimestamps[_balances[msg.sender]];
+      function getMappingAccount(address _a) external view returns (uint){
+    return _burnTimestamps[_balances[_a]];
 }
       //함수 실행시킨 스토어가 가지고 있는 토큰의 타임스탬프가 몇인지
-      function getStoreNftTime(address _a)public view returns(uint){
+      function getStoreNftTime(address _a)external view returns(uint){
         return _burnTimestamps[_balances[_a]];
       }
 
