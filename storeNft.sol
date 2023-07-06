@@ -25,7 +25,7 @@ contract store is ERC1155 {
     
     
     
-    constructor () ERC1155 ("{id}.json") {}
+    constructor () ERC1155 ("https://maroon-mysterious-halibut-244.mypinata.cloud/ipfs/Qmdbz8XA1vzSTqdkp3TpoDFg754JMg8nHWMKGGrAPPc1fL/storeNft.json") {}
 
 
     //스토어 회원가입 등록버튼 누르면 실행

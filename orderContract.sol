@@ -128,7 +128,19 @@ contract Payment is Ownable {
     }
 
 
-    
+    function getRiderNftTime()public  view returns(uint){
+        return riderContract.getRiderNftTime(msg.sender);
+    }
+    function getStoreNftTime()public  view returns(uint){
+        return Store.getStoreNftTime(msg.sender);
+    }
+    //배달선택(setDelivery)이 안되면, nftMarket가서 burn버튼 클릭하고,nft구매버튼으로 민팅팅
+    function burnRiderNft()public {       
+            riderContract.burn(msg.sender,riderContract.getRiderTokenId(msg.sender));        
+    }
+    function burnStoreNft()public {       
+            Store.storeBurn(msg.sender,Store.getStoreTokenId(msg.sender));        
+    }
 
     // function getRiderNftTime(address _a)public  view returns(uint){
     //     return riderContract.getRiderNftTime(_a);
@@ -150,10 +162,7 @@ contract Payment is Ownable {
         searchOrder[_orderID].status = orderState.rider_accept;
     }
 
-    //배달선택(setDelivery)이 안되면, nftMarket가서 burn버튼 클릭하고,nft구매버튼으로 민팅팅
-    function burnRiderNft()public {       
-            riderContract.burn(msg.sender,riderContract.getRiderTokenId(msg.sender));        
-    }
+    
 
     //배달권 민팅은 원본컨트랙트에서 실행해야하는듯..msg.value가 전달이 안됨..
     
