@@ -61,6 +61,7 @@ contract store is ERC1155 {
         return _burnTimestamps[_balances[_a]];
       }
 
+      
       //스토어 마이페이지에 burn버튼 필요
      function storeBurn(address _msgSender,uint tokenId) external {
          
