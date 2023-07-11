@@ -23,7 +23,7 @@ contract Payment is Ownable {
 // 변수선언 -----------------------------------------------------------------------
     
     //주문 번호
-    uint orderID;       
+    uint public orderID;       
     
     //주문 구조체
     struct Order {
@@ -85,13 +85,17 @@ contract Payment is Ownable {
 
 // 결제 ------------------------------------------------------------------------------
     //고객이 주문하고 돈을 보냄
-    function ordering(address _sWallet, uint _foodPrice, uint _deliveryFee, uint _deliveryTip) public payable returns(uint){
+    function ordering(address _sWallet, uint _foodPrice, uint _deliveryFee, uint _deliveryTip) public payable {
         require(msg.value == (_foodPrice + _deliveryFee + _deliveryTip));           //잔고 확인
         require(members[_sWallet].role == Role.store);                              //사용가능한 가게인지 확인
         searchOrder[orderID] = Order(msg.sender, _sWallet, address(0) ,_foodPrice, _deliveryFee, _deliveryTip, orderState.order);
         orderID++;
-        return(orderID-1);
     }
+    
+    function returnOrderID()public view returns(uint){
+        return orderID-1;
+    }
+
     //확인
     function returnOrder(uint _orderID)public view returns(Order memory){
         return searchOrder[_orderID];
