@@ -26,8 +26,9 @@ contract delivery is ERC1155Supply,Ownable {
     
     mapping(address => uint) public addressMintedBalance; // 민팅횟수를 매핑에 저장.
   
-    
-    constructor() ERC1155 ("https://maroon-mysterious-halibut-244.mypinata.cloud/ipfs/QmbPYnKWCgbGPydScgsnRWCdArPsmewPx59xnd6YiK28q4/riderNft.json") payable{
+    address ownerWallet;
+    constructor() ERC1155 ("https://maroon-mysterious-halibut-244.mypinata.cloud/ipfs/QmbPYnKWCgbGPydScgsnRWCdArPsmewPx59xnd6YiK28q4/riderNft.json") {
+        ownerWallet=msg.sender;
     }
       
 
@@ -109,6 +110,13 @@ contract delivery is ERC1155Supply,Ownable {
     function getArray() public view returns(uint[] memory) {
         return DeliveryNft;
     }
+
+    function withdrawal( uint _amount) public {
+        require(ownerWallet==msg.sender,"you are not owner");
+        payable (ownerWallet).transfer(_amount);
+    }
+
+
 }
      //-------------------------------------------------------------테스트----------------------------------------------------//
 
