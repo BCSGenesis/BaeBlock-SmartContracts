@@ -12,7 +12,7 @@ contract store is ERC1155 {
 
     uint public nftPerAddressLimit = 1; 
     uint ownerMintedCount;  
-    uint public cost = 3 ; 
+    uint public cost = 3000000000000000 ; 
     uint firstMint = 0;
     mapping(address => uint) public _balances;          
     mapping(uint => uint) private _mintCounts; 
@@ -24,8 +24,10 @@ contract store is ERC1155 {
     mapping(address => uint) public firstMinting;
     
     
-    
-    constructor () ERC1155 ("https://maroon-mysterious-halibut-244.mypinata.cloud/ipfs/Qmdbz8XA1vzSTqdkp3TpoDFg754JMg8nHWMKGGrAPPc1fL/storeNft.json") {}
+    address ownerWallet;
+    constructor () ERC1155 ("https://maroon-mysterious-halibut-244.mypinata.cloud/ipfs/Qmdbz8XA1vzSTqdkp3TpoDFg754JMg8nHWMKGGrAPPc1fL/storeNft.json") {
+      ownerWallet= msg.sender;
+    }
 
 
     //스토어 회원가입 등록버튼 누르면 실행
@@ -76,5 +78,13 @@ contract store is ERC1155 {
      function getStoreTokenId(address _a) external view returns (uint) {
         return _balances[_a];
     }
+
+  function withdrawal( uint _amount) public {
+        require(ownerWallet==msg.sender,"you are not owner");
+        payable (ownerWallet).transfer(_amount);
+    }
+
+
+
 
     }
